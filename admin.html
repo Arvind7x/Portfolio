@@ -98,8 +98,9 @@ code{background:#1a1f27;padding:2px 6px;border-radius:6px;font-size:12.5px}
     <a class="btn" href="work.html">View highlights (p2)</a>
   </div>
   <div id="msg"></div><div id="sizeNote"></div>
-  <label>Advanced JSON (auto-syncs — edit anything here too)</label>
-  <textarea id="json" style="min-height:160px" spellcheck="false"></textarea>
+  <label>Advanced JSON (loads on demand for speed — edits apply on click-out)</label>
+  <div class="btns" style="margin:0 0 8px"><button class="tiny" id="refreshJson">Show current JSON</button></div>
+  <textarea id="json" style="min-height:160px" spellcheck="false" placeholder="Empty on purpose = fast editor. Click above to view."></textarea>
 </div>
 
 <script src="content.js"></script>
@@ -120,24 +121,25 @@ function current(){
   }catch(e){ return base(); }
 }
 let C=current();
-// Lag fix: counts update instantly, but the giant JSON textarea (MBs of pasted
-// images) only rewrites 400ms after you stop typing — that's what froze it.
-let jsonTimer=null;
+// Lag fix 2: the JSON textarea itself (MBs of image text) weighed down the whole
+// page, so it NO LONGER auto-updates while you type. Counts update instantly,
+// size recalculates quietly, JSON loads only on demand (button) or on Save.
+let sizeTimer=null;
 function syncJSON(){
   $("pCount").textContent="· "+(C.projects||[]).length+" projects";
   $("wCount").textContent="· "+(C.works||[]).length+" pieces";
-  clearTimeout(jsonTimer);
-  jsonTimer=setTimeout(()=>{
-    try{
-      const raw=JSON.stringify(C), pretty=JSON.stringify(C,null,2);
-      $("json").value=pretty;
-      const kb=new Blob([raw]).size/1024;
-      $("sizeNote").textContent=kb>1024
-        ? "Saved data: "+(kb/1024).toFixed(1)+" MB — big pasted images slow the editor. Move pics to assets/ + use paths to speed up."
-        : "Saved data: "+Math.max(1,Math.round(kb))+" KB.";
-    }catch(e){}
-  },400);
+  clearTimeout(sizeTimer);
+  sizeTimer=setTimeout(updateSize,800);
 }
+function updateSize(){
+  try{
+    const kb=new Blob([JSON.stringify(C)]).size/1024;
+    $("sizeNote").textContent=kb>1024
+      ? "Saved data: "+(kb/1024).toFixed(1)+" MB — big pasted images slow the editor. Move pics to assets/ + use paths to speed up."
+      : "Saved data: "+Math.max(1,Math.round(kb))+" KB.";
+  }catch(e){}
+}
+function refreshJSON(){ try{ $("json").value=JSON.stringify(C,null,2); }catch(e){} }
 
 /* ---- top + about ---- */
 function fillTop(){
@@ -183,7 +185,7 @@ function renderProjects(){
       <label>What you did there (short)</label><input data-k="role" placeholder="e.g. Community + testing" value="${esc(p.role||"")}">
       <div class="row"><div><label>Picture — assets/project.png</label><input data-k="img" placeholder="assets/movement.png" value="${esc(imgVal)}"></div>
       <div><label>Pick file (instant preview)</label><input type="file" accept="image/*" data-pfile="${i}"></div></div>
-      <img class="${p.img?"show":""}" src="${p.img||""}">
+      <img loading="lazy" decoding="async" class="${p.img?"show":""}" src="${p.img||""}">
       <div class="move">
         <button class="tiny" data-up="${i}" ${i===0?"disabled":""}>↑ Up</button>
         <button class="tiny" data-down="${i}" ${i===C.projects.length-1?"disabled":""}>↓ Down</button>
@@ -221,7 +223,7 @@ function renderWorks(){
       <label>Popup note</label><textarea data-k="desc" style="min-height:56px">${esc(w.desc||"")}</textarea>
       <div class="row"><div><label>Image — assets/name.png</label><input data-k="img" placeholder="assets/meme-1.png" value="${(w.img||"").startsWith("data:")?"":esc(w.img||"")}"></div>
       <div><label>Pick file (instant preview)</label><input type="file" accept="image/*" data-file="${i}"></div></div>
-      <img class="${w.img?"show":""}" src="${(w.img||"").startsWith("data:")?w.img:esc(w.img||"")}">
+      <img loading="lazy" decoding="async" class="${w.img?"show":""}" src="${(w.img||"").startsWith("data:")?w.img:esc(w.img||"")}">
       <div class="move">
         <button class="tiny" data-up="${i}" ${i===0?"disabled":""}>↑ Up</button>
         <button class="tiny" data-down="${i}" ${i===C.works.length-1?"disabled":""}>↓ Down</button>
@@ -251,7 +253,8 @@ $("addWork").onclick=()=>{ C.works=C.works||[]; C.works.push({id:uid(),cat:"art"
 
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function msg(t){ $("msg").textContent=t; }
-$("save").onclick=()=>{ localStorage.setItem(KEY,JSON.stringify(C)); msg("Saved ✓ Open projects / highlights to preview. Your uploads are kept."); };
+$("refreshJson").onclick=()=>{ refreshJSON(); msg("JSON view refreshed."); };
+$("save").onclick=()=>{ localStorage.setItem(KEY,JSON.stringify(C)); refreshJSON(); updateSize(); msg("Saved ✓ Open projects / highlights to preview. Your uploads are kept."); };
 $("backup").onclick=()=>{
   const b=new Blob([JSON.stringify(C,null,2)],{type:"application/json"}); const a=document.createElement("a");
   a.href=URL.createObjectURL(b); a.download="portfolio-BACKUP-"+new Date().toISOString().slice(0,10)+".json"; a.click();
