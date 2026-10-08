@@ -20,7 +20,7 @@
     } catch (e) { return base; }
   }
   const C = getContent(), P = C.profile || {};
-  const isWork = location.pathname.toLowerCase().endsWith("work.html");
+  const isWork = /\/(work)(\.html)?\/?$/.test(location.pathname.toLowerCase());
   document.title = isWork ? ("Highlighted Work — " + (P.alias || "")) : ((P.alias || "Portfolio") + " — Tester, Community, Artist");
 
   set("brandAlias", P.alias); set("footAlias", P.alias);
