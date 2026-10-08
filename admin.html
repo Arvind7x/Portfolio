@@ -91,7 +91,6 @@ code{background:#1a1f27;padding:2px 6px;border-radius:6px;font-size:12.5px}
     <button id="backup">⬇ Backup my uploads</button>
     <button id="restoreBtn">⬆ Restore backup</button>
     <input type="file" id="restoreFile" accept=".json,application/json" style="display:none">
-    <button id="changePw">Change admin password</button>
     <button id="reset">Reset to defaults</button>
     <button class="accent" id="download">Download content.js (for hosting)</button>
     <a class="btn" href="index.html">View projects (p1)</a>
@@ -288,25 +287,26 @@ $("download").onclick=()=>{
 // full re-render per keystroke was the other freeze cause.
 $("json").addEventListener("change",()=>{ try{ const v=JSON.parse($("json").value); C=v; fillTop(); renderProjects(); renderWorks(); syncJSON(); msg("JSON loaded ✓"); }catch(e){ msg("JSON invalid: "+e.message); } });
 
-/* ---- password gate (local deterrent; real protection = not deployed) ---- */
-const PW_KEY="void_admin_pw";
+/* ---- ONE fixed site password: only it unlocks the admin, on any device ---- */
+// HONEST NOTE: static sites can't do real logins — this check runs in the
+// browser, so it stops every casual visitor but a determined techie could
+// bypass it via page source. Want true server-side login later? Say the word.
+const ADMIN_HASH="262b095d66ca3145";
 function h53(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (h2>>>0).toString(16)+(h1>>>0).toString(16);}
 function gate(){
+  try{ localStorage.removeItem("void_admin_pw"); }catch(e){} // drop the old per-browser setup
   if(sessionStorage.getItem("void_admin_ok")==="1"){ $("lock").style.display="none"; return; }
-  if(!localStorage.getItem(PW_KEY)){ $("lockMsg").textContent="First time — create an admin password (min 4 chars):"; $("lockGo").textContent="Set password"; }
+  $("lockMsg").textContent="Enter admin password:";
+  $("lockGo").textContent="Unlock";
   $("lockGo").onclick=()=>{
-    const v=$("lockPw").value||"";
-    if(v.length<4){ $("lockMsg").textContent="Use at least 4 characters."; return; }
-    const h=h53(v), saved=localStorage.getItem(PW_KEY);
-    if(!saved) localStorage.setItem(PW_KEY,h);
-    else if(saved!==h){ $("lockMsg").textContent="Wrong password. Try again."; $("lockPw").value=""; return; }
-    sessionStorage.setItem("void_admin_ok","1");
-    $("lock").style.display="none";
+    if(h53($("lockPw").value||"")===ADMIN_HASH){
+      sessionStorage.setItem("void_admin_ok","1");
+      $("lock").style.display="none";
+    } else { $("lockMsg").textContent="Wrong password."; $("lockPw").value=""; }
   };
   $("lockPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("lockGo").click(); });
   setTimeout(()=>$("lockPw").focus(),100);
 }
-$("changePw").onclick=()=>{ localStorage.removeItem(PW_KEY); sessionStorage.removeItem("void_admin_ok"); location.reload(); };
 
 fillTop(); renderProjects(); renderWorks(); syncJSON(); gate();
 </script>
