@@ -6,6 +6,8 @@
   function set(id, v) { const el = document.getElementById(id); if (el && v != null && v !== "") el.textContent = v; }
   let lenis = null; // buttery scroll engine (null = native fallback)
   const RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let arrFast = false; // true when arriving from the other page: play a snappier intro
+  try { arrFast = sessionStorage.getItem("void_nav") === "1"; sessionStorage.removeItem("void_nav"); } catch (e) {}
 
   function getContent() {
     const base = window.SITE_CONTENT || { profile: {}, works: [], projects: [], about: {} };
@@ -196,16 +198,40 @@
   addEventListener("load", () => { onScrollPos(); if (window.ScrollTrigger) ScrollTrigger.refresh(); });
   const mb = $("#menuBtn"); if (mb) mb.onclick = () => $("#mobileMenu").classList.toggle("open");
 
+  // ---- instant-feel page jumps: veil + prefetch + image warming ----
+  // The other page + its images load quietly while you browse, so jumping
+  // back and forth feels like one smooth app instead of cold reloads.
+  const veil = document.getElementById("veil");
+  $$('a[href="/"], a[href="/work"]').forEach(a => a.addEventListener("click", e => {
+    e.preventDefault();
+    const m = $("#mobileMenu"); if (m) m.classList.remove("open");
+    const href = a.getAttribute("href");
+    try { sessionStorage.setItem("void_nav", "1"); } catch (err) {}
+    if (veil) veil.classList.add("leaving");
+    setTimeout(() => { location.href = href; }, 260);
+  }));
+  try {
+    const otherPage = isWork ? "/" : "/work";
+    const warm = () => {
+      try { const l = document.createElement("link"); l.rel = "prefetch"; l.href = otherPage; document.head.appendChild(l); } catch (e) {}
+      const imgs = isWork ? (C.projects || []).map(p => p.img) : (C.works || []).map(w => w.img);
+      imgs.forEach(src => { if (src && !String(src).startsWith("data:")) { try { const im = new Image(); im.src = src; } catch (e) {} } });
+    };
+    if ("requestIdleCallback" in window) requestIdleCallback(warm, { timeout: 3000 });
+    else setTimeout(warm, 1500);
+  } catch (e) {}
+
   // ---- calm premium motion (never blocks scroll/click) ----
   if (RM || !window.gsap || !window.ScrollTrigger) { document.body.classList.add("no-anim"); return; }
   try {
     gsap.registerPlugin(ScrollTrigger);
     // staged entrance for hero / page head
     const intro = $$(".hero [data-reveal], .page-head [data-reveal]");
-    if (intro.length) gsap.fromTo(intro, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .9, stagger: .09, ease: "power3.out", delay: .1 });
-    gsap.fromTo("#nav", { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: "power3.out" });
+    const spd = arrFast ? 0.45 : 1; // internal arrivals play a snappier intro
+    if (intro.length) gsap.fromTo(intro, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .9 * spd, stagger: .09 * spd, ease: "power3.out", delay: arrFast ? 0 : .1 });
+    gsap.fromTo("#nav", { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: .7 * spd, ease: "power3.out" });
     const hp2 = $("#heroPhoto");
-    if (hp2 && !hp2.classList.contains("hide")) gsap.fromTo(hp2, { scale: .94, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.1, ease: "power3.out", delay: .25 });
+    if (hp2 && !hp2.classList.contains("hide")) gsap.fromTo(hp2, { scale: .94, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.1 * spd, ease: "power3.out", delay: arrFast ? 0 : .25 });
     // projects container stays visible; its rows stagger in below
     const pl = $("#projectList");
     if (pl) gsap.set(pl, { opacity: 1, y: 0 });
