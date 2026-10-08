@@ -28,12 +28,18 @@ button.tiny{padding:7px 12px;font-size:12.5px}
 ol.steps{margin:10px 0 0 18px;color:#c6ccd8;font-size:14px;display:grid;gap:6px}
 code{background:#1a1f27;padding:2px 6px;border-radius:6px;font-size:12.5px}
 .move{display:flex;gap:6px;margin-top:10px}
+#lock{position:fixed;inset:0;background:#0b0d10;z-index:99;display:flex;align-items:center;justify-content:center;padding:20px}
+.lock-card{background:#11141a;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:28px;width:min(360px,100%);text-align:center}
+.lock-card h2{font-size:20px;margin-bottom:8px}.lock-card p{color:#9aa3b2;font-size:13.5px;margin-bottom:14px}
+.lock-card input{margin-bottom:12px;text-align:center}
+#sizeNote{color:#8b93a5;font-size:12px;margin-top:8px}
 @media(max-width:760px){.grid2,.row,.row3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div id="lock"><div class="lock-card"><h2>🔒 Admin</h2><p id="lockMsg">Enter password</p><input type="password" id="lockPw" placeholder="Password" autocomplete="off"><div class="btns" style="justify-content:center"><button class="primary" id="lockGo">Unlock</button></div></div></div>
 <h1>Site editor</h1>
-<p class="sub">Page 1 = <a href="index.html">Projects</a> · Page 2 = <a href="work.html">Highlights</a> · Your uploads live in this browser (Save key) — site updates never delete them. Tip: hit <b>⬇ Backup my uploads</b> once for safety, then edit freely.</p>
+<p class="sub">Page 1 = <a href="index.html">Projects</a> · Page 2 = <a href="work.html">Highlights</a> · Your uploads live in this browser — site updates never delete them. This page is <b>not</b> deployed to Vercel (blocked), so strangers can't reach it. Tip: hit <b>⬇ Backup my uploads</b> once for safety.</p>
 
 <div class="grid2">
 <div class="card" style="border-color:rgba(158,240,192,.4)">
@@ -85,12 +91,13 @@ code{background:#1a1f27;padding:2px 6px;border-radius:6px;font-size:12.5px}
     <button id="backup">⬇ Backup my uploads</button>
     <button id="restoreBtn">⬆ Restore backup</button>
     <input type="file" id="restoreFile" accept=".json,application/json" style="display:none">
+    <button id="changePw">Change admin password</button>
     <button id="reset">Reset to defaults</button>
     <button class="accent" id="download">Download content.js (for hosting)</button>
     <a class="btn" href="index.html">View projects (p1)</a>
     <a class="btn" href="work.html">View highlights (p2)</a>
   </div>
-  <div id="msg"></div>
+  <div id="msg"></div><div id="sizeNote"></div>
   <label>Advanced JSON (auto-syncs — edit anything here too)</label>
   <textarea id="json" style="min-height:160px" spellcheck="false"></textarea>
 </div>
@@ -113,9 +120,24 @@ function current(){
   }catch(e){ return base(); }
 }
 let C=current();
-function syncJSON(){ $("json").value=JSON.stringify(C,null,2);
+// Lag fix: counts update instantly, but the giant JSON textarea (MBs of pasted
+// images) only rewrites 400ms after you stop typing — that's what froze it.
+let jsonTimer=null;
+function syncJSON(){
   $("pCount").textContent="· "+(C.projects||[]).length+" projects";
-  $("wCount").textContent="· "+(C.works||[]).length+" pieces"; }
+  $("wCount").textContent="· "+(C.works||[]).length+" pieces";
+  clearTimeout(jsonTimer);
+  jsonTimer=setTimeout(()=>{
+    try{
+      const raw=JSON.stringify(C), pretty=JSON.stringify(C,null,2);
+      $("json").value=pretty;
+      const kb=new Blob([raw]).size/1024;
+      $("sizeNote").textContent=kb>1024
+        ? "Saved data: "+(kb/1024).toFixed(1)+" MB — big pasted images slow the editor. Move pics to assets/ + use paths to speed up."
+        : "Saved data: "+Math.max(1,Math.round(kb))+" KB.";
+    }catch(e){}
+  },400);
+}
 
 /* ---- top + about ---- */
 function fillTop(){
@@ -252,9 +274,31 @@ $("download").onclick=()=>{
   a.href=URL.createObjectURL(b); a.download="content.js"; a.click();
   msg("Downloaded content.js — replace the file, re-upload folder to host.");
 };
-$("json").addEventListener("input",()=>{ try{ const v=JSON.parse($("json").value); C=v; fillTop(); renderProjects(); renderWorks(); }catch(e){} });
+// Parse advanced JSON on blur/Enter (change), NOT every keystroke — parsing +
+// full re-render per keystroke was the other freeze cause.
+$("json").addEventListener("change",()=>{ try{ const v=JSON.parse($("json").value); C=v; fillTop(); renderProjects(); renderWorks(); syncJSON(); msg("JSON loaded ✓"); }catch(e){ msg("JSON invalid: "+e.message); } });
 
-fillTop(); renderProjects(); renderWorks(); syncJSON();
+/* ---- password gate (local deterrent; real protection = not deployed) ---- */
+const PW_KEY="void_admin_pw";
+function h53(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (h2>>>0).toString(16)+(h1>>>0).toString(16);}
+function gate(){
+  if(sessionStorage.getItem("void_admin_ok")==="1"){ $("lock").style.display="none"; return; }
+  if(!localStorage.getItem(PW_KEY)){ $("lockMsg").textContent="First time — create an admin password (min 4 chars):"; $("lockGo").textContent="Set password"; }
+  $("lockGo").onclick=()=>{
+    const v=$("lockPw").value||"";
+    if(v.length<4){ $("lockMsg").textContent="Use at least 4 characters."; return; }
+    const h=h53(v), saved=localStorage.getItem(PW_KEY);
+    if(!saved) localStorage.setItem(PW_KEY,h);
+    else if(saved!==h){ $("lockMsg").textContent="Wrong password. Try again."; $("lockPw").value=""; return; }
+    sessionStorage.setItem("void_admin_ok","1");
+    $("lock").style.display="none";
+  };
+  $("lockPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("lockGo").click(); });
+  setTimeout(()=>$("lockPw").focus(),100);
+}
+$("changePw").onclick=()=>{ localStorage.removeItem(PW_KEY); sessionStorage.removeItem("void_admin_ok"); location.reload(); };
+
+fillTop(); renderProjects(); renderWorks(); syncJSON(); gate();
 </script>
 </body>
 </html>
