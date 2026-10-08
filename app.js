@@ -1,9 +1,11 @@
-/* v4 — 2 pages (home + archive), image support, native smooth scroll */
+/* v5 — Lenis buttery scroll + calm premium motion (native fallback if CDN fails) */
 (function () {
   const $ = (s, c) => (c || document).querySelector(s);
   const $$ = (s, c) => Array.from((c || document).querySelectorAll(s));
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
   function set(id, v) { const el = document.getElementById(id); if (el && v != null && v !== "") el.textContent = v; }
+  let lenis = null; // buttery scroll engine (null = native fallback)
+  const RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function getContent() {
     const base = window.SITE_CONTENT || { profile: {}, works: [], projects: [], about: {} };
@@ -45,7 +47,7 @@
 
   // ---- cards (image-first, gradient fallback) ----
   function visualInner(w) {
-    if (w.img) return `<img src="${esc(w.img)}" alt="${esc(w.title)}" loading="lazy" onerror="this.remove()">`;
+    if (w.img) return `<span class="pzoom"><img src="${esc(w.img)}" alt="${esc(w.title)}" loading="lazy" onerror="this.remove()"></span>`;
     return `<span class="letter">${esc(w.letter || (w.title || "X")[0])}</span>`;
   }
   function cardHTML(w) {
@@ -118,14 +120,15 @@
     set("lbCat", w.cat); set("lbTitle", w.title); set("lbDesc", w.desc || w.note || "");
     lb.classList.add("open"); lb.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+    if (lenis) lenis.stop();
   }
-  function closeLB() { if (!lb) return; lb.classList.remove("open"); lb.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+  function closeLB() { if (!lb) return; lb.classList.remove("open"); lb.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; if (lenis) lenis.start(); }
   $$("[data-lb-close]").forEach(el => el.addEventListener("click", closeLB));
 
   // ---- contact modal ----
   const cm = $("#contactModal");
-  function openContact() { if (!cm) return; cm.classList.add("open"); cm.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden"; }
-  function closeContact() { if (!cm) return; cm.classList.remove("open"); cm.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; }
+  function openContact() { if (!cm) return; cm.classList.add("open"); cm.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden"; if (lenis) lenis.stop(); }
+  function closeContact() { if (!cm) return; cm.classList.remove("open"); cm.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; if (lenis) lenis.start(); }
   $$("[data-contact]").forEach(b => b.addEventListener("click", openContact));
   const co = $("#contactOpen"); if (co) co.addEventListener("click", openContact);
   const com = $("#contactOpenM"); if (com) com.addEventListener("click", () => { const m = $("#mobileMenu"); if (m) m.classList.remove("open"); openContact(); });
@@ -143,40 +146,93 @@
     setTimeout(() => e.target.textContent = "Copy username", 1600);
   });
 
-  // ---- smooth scroll: only same-page #links, never hijack cross-page ----
-  function smoothTo(target) {
+  // ---- buttery scroll engine (Lenis) with native fallback ----
+  function initSmooth() {
+    if (RM || !window.Lenis) return null;
+    try {
+      const l = new Lenis({ lerp: 0.09, smoothWheel: true });
+      if (window.gsap && window.ScrollTrigger) {
+        l.on("scroll", ScrollTrigger.update);
+        gsap.ticker.add((time) => { l.raf(time * 1000); });
+        gsap.ticker.lagSmoothing(0);
+      } else {
+        const raf = (t) => { l.raf(t); requestAnimationFrame(raf); };
+        requestAnimationFrame(raf);
+      }
+      return l;
+    } catch (e) { return null; }
+  }
+  lenis = initSmooth();
+
+  // ---- anchor glide: only same-page #links, never hijack cross-page ----
+  function goTo(target) {
+    if (lenis) { try { lenis.scrollTo(target, { offset: -72, duration: 1.4 }); return; } catch (e) {} }
     const y = target.getBoundingClientRect().top + window.scrollY - 72;
     window.scrollTo({ top: y, behavior: "smooth" });
   }
   $$("[data-scroll]").forEach(a => a.addEventListener("click", e => {
     const href = a.getAttribute("href");
-    if (!href || !href.startsWith("#")) return; // let work.html / index.html links navigate normally
+    if (!href || !href.startsWith("#")) return; // let /work and / links navigate normally
     const t = href === "#top" ? $("main") : document.querySelector(href);
     if (!t) return;
     e.preventDefault();
     const m = $("#mobileMenu"); if (m) m.classList.remove("open");
-    smoothTo(t);
+    goTo(t);
   }));
 
-  // nav state + mobile
-  const nav = $("#nav");
-  if (nav) addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 20), { passive: true });
+  // nav state + scroll progress + mobile
+  const nav = $("#nav"), bar = $("#progressBar");
+  function onScrollPos() {
+    if (nav) nav.classList.toggle("scrolled", window.scrollY > 20);
+    if (bar) {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      const p = h > 0 ? Math.min(1, Math.max(0, window.scrollY / h)) : 0;
+      bar.style.transform = "scaleX(" + p + ")";
+    }
+  }
+  if (lenis) lenis.on("scroll", onScrollPos);
+  else addEventListener("scroll", onScrollPos, { passive: true });
+  onScrollPos();
+  addEventListener("load", () => { onScrollPos(); if (window.ScrollTrigger) ScrollTrigger.refresh(); });
   const mb = $("#menuBtn"); if (mb) mb.onclick = () => $("#mobileMenu").classList.toggle("open");
 
-  // ---- reveal animation (never blocks scroll/click) ----
-  if (!window.gsap) { document.body.classList.add("no-anim"); return; }
+  // ---- calm premium motion (never blocks scroll/click) ----
+  if (RM || !window.gsap || !window.ScrollTrigger) { document.body.classList.add("no-anim"); return; }
   try {
     gsap.registerPlugin(ScrollTrigger);
+    // staged entrance for hero / page head
+    const intro = $$(".hero [data-reveal], .page-head [data-reveal]");
+    if (intro.length) gsap.fromTo(intro, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .9, stagger: .09, ease: "power3.out", delay: .1 });
+    gsap.fromTo("#nav", { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: .7, ease: "power3.out" });
+    const hp2 = $("#heroPhoto");
+    if (hp2 && !hp2.classList.contains("hide")) gsap.fromTo(hp2, { scale: .94, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.1, ease: "power3.out", delay: .25 });
+    // projects container stays visible; its rows stagger in below
+    const pl = $("#projectList");
+    if (pl) gsap.set(pl, { opacity: 1, y: 0 });
+    // soft blur-fade reveals everywhere else
     $$("[data-reveal]").forEach(el => {
-      gsap.fromTo(el, { opacity: 0, y: 24 }, {
-        opacity: 1, y: 0, duration: .85, ease: "power3.out",
-        scrollTrigger: { trigger: el, start: "top 90%", once: true }
+      if (el.closest(".hero,.page-head") || el.id === "projectList") return;
+      gsap.fromTo(el, { opacity: 0, y: 28, filter: "blur(6px)" }, {
+        opacity: 1, y: 0, filter: "blur(0px)", duration: .9, ease: "power3.out",
+        scrollTrigger: { trigger: el, start: "top 88%", once: true }
       });
     });
-    $$(".wcard").forEach((card, i) => {
-      gsap.fromTo(card, { opacity: 0, y: 26 }, {
-        opacity: 1, y: 0, duration: .65, ease: "power3.out", delay: (i % 3) * .05,
-        scrollTrigger: { trigger: card, start: "top 94%", once: true }
+    // staggered card + project-row entrances
+    const cards = $$(".wcard");
+    if (cards.length) {
+      gsap.set(cards, { opacity: 0, y: 30 });
+      ScrollTrigger.batch(cards, { start: "top 94%", once: true, onEnter: b => gsap.to(b, { opacity: 1, y: 0, duration: .7, stagger: .08, ease: "power3.out", overwrite: true }) });
+    }
+    const rows = $$(".prow");
+    if (rows.length) {
+      gsap.set(rows, { opacity: 0, y: 22 });
+      ScrollTrigger.batch(rows, { start: "top 94%", once: true, onEnter: b => gsap.to(b, { opacity: 1, y: 0, duration: .6, stagger: .07, ease: "power3.out", overwrite: true }) });
+    }
+    // gentle parallax drift inside artwork
+    $$(".pzoom img").forEach(img => {
+      gsap.fromTo(img, { yPercent: -5 }, {
+        yPercent: 5, ease: "none",
+        scrollTrigger: { trigger: img.closest(".wcard") || img, start: "top bottom", end: "bottom top", scrub: true }
       });
     });
   } catch (e) { document.body.classList.add("no-anim"); }
