@@ -1,0 +1,14 @@
+Put your art here.
+
+Examples:
+  assets/meme-1.png
+  assets/poster-1.jpg
+  assets/me.jpg   <- your photo (shows on home top)
+
+Then in admin.html paste the path into Image, or in content.js set:
+  img: "assets/meme-1.png"
+
+Tips:
+- .png / .jpg / .webp / .gif all work
+- Keep each under ~500KB (use tinypng.com if big)
+- Simple names, no spaces: meme-1.png (not "My Meme!! 1.png")

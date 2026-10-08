@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edit Site — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#0b0d10;color:#eef;padding:26px;max-width:1020px;margin:0 auto}
+h1{font-size:28px;letter-spacing:-.02em}p.sub{color:#9aa3b2;margin:6px 0 20px;font-size:14px}p.sub a{color:#9ef0c0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#11141a;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;margin-bottom:16px}
+.card h3{font-size:16px;margin-bottom:6px}.card small{color:#8b93a5;font-size:12.5px}
+label{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa3b2;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+input,textarea,select{width:100%;border:1px solid rgba(255,255,255,.14);background:#0b0e13;color:#eef;padding:10px 12px;border-radius:10px;font-family:inherit;font-size:14px}
+textarea{min-height:90px;font-family:'JetBrains Mono',monospace;font-size:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+button,a.btn{border:1px solid rgba(255,255,255,.16);background:#1a1f27;color:#fff;padding:11px 16px;border-radius:100px;font-weight:500;cursor:pointer;text-decoration:none;font-size:14px}
+button.primary{background:#eef;color:#0a0b0d;border-color:#eef}button.accent{background:#9ef0c0;color:#06281a;border-color:#9ef0c0}
+button.danger{background:transparent;border-color:rgba(255,120,120,.4);color:#ff9c9c}
+button.tiny{padding:7px 12px;font-size:12.5px}
+#msg{margin-top:10px;font-size:13px;color:#9ef0c0;min-height:20px}
+.item{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-top:12px;background:#0d1015}
+.item img{width:100%;height:150px;object-fit:cover;border-radius:8px;margin-top:8px;display:none;background:#1a1f27}
+.item img.show{display:block}
+.pill{font-family:'JetBrains Mono',monospace;font-size:11px;color:#9ef0c0}
+ol.steps{margin:10px 0 0 18px;color:#c6ccd8;font-size:14px;display:grid;gap:6px}
+code{background:#1a1f27;padding:2px 6px;border-radius:6px;font-size:12.5px}
+.move{display:flex;gap:6px;margin-top:10px}
+@media(max-width:760px){.grid2,.row,.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>Site editor</h1>
+<p class="sub">Page 1 = <a href="index.html">Projects</a> · Page 2 = <a href="work.html">Highlights</a> · Your uploads live in this browser (Save key) — site updates never delete them. Tip: hit <b>⬇ Backup my uploads</b> once for safety, then edit freely.</p>
+
+<div class="grid2">
+<div class="card" style="border-color:rgba(158,240,192,.4)">
+  <h3>1 · Your name + tagline ✏️ (never deleted by updates)</h3><small>Top of page 1 + contact popup. These save with everything else.</small>
+  <label>Your name — shows in logo + hero + footer</label><input id="alias" placeholder="e.g. 0xVOID">
+  <label>Tagline / headline — Hey, I'm…</label><input id="hello" placeholder="e.g. Hey, I'm Alex.">
+  <label>Summary</label><textarea id="summary" style="min-height:70px"></textarea>
+  <label>Roles (comma separated — add / remove freely)</label><input id="roles">
+  <label>Photo — assets/me.jpg (optional)</label>
+  <div class="row"><input id="photo" placeholder="assets/me.jpg"><input type="file" id="photoFile" accept="image/*"></div>
+  <label>Your X link</label><input id="x">
+  <div class="row"><div><label>X handle shown</label><input id="xHandle"></div><div><label>Discord username</label><input id="discord"></div></div>
+  <label>Discord note</label><input id="discordNote">
+</div>
+
+<div class="card">
+  <h3>2 · About (page 1 bottom)</h3><small>One line = one bullet. Delete a line to remove it.</small>
+  <label>Title</label><input id="aTitle">
+  <label>Paragraph</label><textarea id="aBody"></textarea>
+  <label>Things you do (one per line — add / delete lines)</label><textarea id="aPoints"></textarea>
+  <label>Tools (comma separated — add / delete freely)</label><input id="aTools">
+  <div class="card" style="margin:14px 0 0;background:#0b0e13"><b>Art in 30 sec:</b>
+    <ol class="steps">
+      <li>Copy PNG/JPG into <code>assets/</code> → e.g. <code>assets/meme-1.png</code></li>
+      <li>In Highlights below → paste path in <b>Image</b> → Save.</li>
+    </ol>
+  </div>
+</div>
+</div>
+
+<div class="card">
+  <h3>3 · Projects — page 1 <span class="pill" id="pCount"></span></h3>
+  <small>Each row = project name + what you did + X link. ↑ ↓ reorders, Delete removes.</small>
+  <div id="projects"></div>
+  <div class="btns"><button id="addProject">+ Add project</button></div>
+</div>
+
+<div class="card">
+  <h3>4 · Highlights — page 2 <span class="pill" id="wCount"></span></h3>
+  <small>Best art / pieces. ↑ ↓ reorders, Delete removes. Empty image = gradient placeholder.</small>
+  <div id="works"></div>
+  <div class="btns"><button id="addWork">+ Add highlight</button></div>
+</div>
+
+<div class="card">
+  <h3>5 · Save / publish</h3>
+  <div class="btns">
+    <button class="primary" id="save">Save (preview now)</button>
+    <button id="backup">⬇ Backup my uploads</button>
+    <button id="restoreBtn">⬆ Restore backup</button>
+    <input type="file" id="restoreFile" accept=".json,application/json" style="display:none">
+    <button id="reset">Reset to defaults</button>
+    <button class="accent" id="download">Download content.js (for hosting)</button>
+    <a class="btn" href="index.html">View projects (p1)</a>
+    <a class="btn" href="work.html">View highlights (p2)</a>
+  </div>
+  <div id="msg"></div>
+  <label>Advanced JSON (auto-syncs — edit anything here too)</label>
+  <textarea id="json" style="min-height:160px" spellcheck="false"></textarea>
+</div>
+
+<script src="content.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY="degen_portfolio_v1";
+const uid=()=>"id"+Date.now().toString(36)+Math.floor(Math.random()*999);
+function base(){ return JSON.parse(JSON.stringify(window.SITE_CONTENT)); }
+function current(){
+  try{const r=localStorage.getItem(KEY); if(!r) return base();
+    const o=JSON.parse(r); const b=base();
+    return {
+      profile:Object.assign({},b.profile,o.profile||{}),
+      about:Object.assign({},b.about,o.about||{}),
+      projects:o.projects||b.projects||[],
+      works:o.works||b.works||[]
+    };
+  }catch(e){ return base(); }
+}
+let C=current();
+function syncJSON(){ $("json").value=JSON.stringify(C,null,2);
+  $("pCount").textContent="· "+(C.projects||[]).length+" projects";
+  $("wCount").textContent="· "+(C.works||[]).length+" pieces"; }
+
+/* ---- top + about ---- */
+function fillTop(){
+  const p=C.profile,a=C.about;
+  $("alias").value=p.alias||"";$("hello").value=p.hello||"";$("summary").value=p.summary||"";
+  $("roles").value=(p.roles||[]).join(", ");
+  // NEVER put raw image data in the textbox (it used to truncate + corrupt photos). Show a marker instead.
+  $("photo").value=(p.photo||"").startsWith("data:")?"(uploaded photo saved ✓ — pick a new file to replace)":(p.photo||"");
+  $("x").value=p.x||"";$("xHandle").value=p.xHandle||"";$("discord").value=p.discord||"";$("discordNote").value=p.discordNote||"";
+  $("aTitle").value=a.title||"";$("aBody").value=a.body||"";
+  $("aPoints").value=(a.points||[]).join("\n");$("aTools").value=(a.tools||[]).join(", ");
+}
+function collectTop(){
+  C.profile.alias=$("alias").value; C.profile.hello=$("hello").value; C.profile.summary=$("summary").value;
+  C.profile.roles=$("roles").value.split(",").map(s=>s.trim()).filter(Boolean);
+  // Only overwrite photo when user typed a real path. Markers starting with "(" = keep existing saved photo.
+  const pv=$("photo").value.trim();
+  if(pv && !pv.startsWith("(")) C.profile.photo=pv;
+  C.profile.x=$("x").value; C.profile.xHandle=$("xHandle").value;
+  C.profile.discord=$("discord").value; C.profile.discordNote=$("discordNote").value;
+  C.about.title=$("aTitle").value; C.about.body=$("aBody").value;
+  C.about.points=$("aPoints").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  C.about.tools=$("aTools").value.split(",").map(s=>s.trim()).filter(Boolean);
+  syncJSON();
+}
+["alias","hello","summary","roles","photo","x","xHandle","discord","discordNote","aTitle","aBody","aPoints","aTools"].forEach(id=>$(id).addEventListener("input",collectTop));
+$("photoFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ C.profile.photo=r.result; $("photo").value="(preview — also save "+f.name+" to assets/ for hosting)"; syncJSON(); msg("Photo preview loaded. Also save "+f.name+" into assets/."); };
+  r.readAsDataURL(f);
+});
+
+/* ---- projects CRUD + reorder ---- */
+function renderProjects(){
+  const box=$("projects"); box.innerHTML="";
+  (C.projects||[]).forEach((p,i)=>{
+    const d=document.createElement("div"); d.className="item";
+    const imgVal=(p.img||"").startsWith("data:")?"":(p.img||"");
+    d.innerHTML=`
+      <div class="row"><div><label>Project name</label><input data-k="name" value="${esc(p.name)}"></div>
+      <div><label>X link</label><input data-k="x" placeholder="https://x.com/..." value="${esc(p.x||"")}"></div></div>
+      <label>What you did there (short)</label><input data-k="role" placeholder="e.g. Community + testing" value="${esc(p.role||"")}">
+      <div class="row"><div><label>Picture — assets/project.png</label><input data-k="img" placeholder="assets/movement.png" value="${esc(imgVal)}"></div>
+      <div><label>Pick file (instant preview)</label><input type="file" accept="image/*" data-pfile="${i}"></div></div>
+      <img class="${p.img?"show":""}" src="${p.img||""}">
+      <div class="move">
+        <button class="tiny" data-up="${i}" ${i===0?"disabled":""}>↑ Up</button>
+        <button class="tiny" data-down="${i}" ${i===C.projects.length-1?"disabled":""}>↓ Down</button>
+        <button class="tiny danger" data-del="${i}">Delete</button>
+      </div>`;
+    d.querySelectorAll("[data-k]").forEach(inp=>inp.addEventListener("input",()=>{
+      C.projects[i][inp.dataset.k]=inp.value;
+      if(inp.dataset.k==="img"){ const im=d.querySelector("img"); im.src=inp.value; im.classList.toggle("show",!!inp.value); }
+      syncJSON();
+    }));
+    d.querySelector("[data-pfile]").addEventListener("change",e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{ C.projects[i].img=r.result; const im=d.querySelector("img"); im.src=r.result; im.classList.add("show"); syncJSON(); msg("Project picture preview loaded. For hosting also save "+f.name+" into assets/ and set assets/"+f.name+"."); };
+      r.readAsDataURL(f);
+    });
+    d.querySelector("[data-del]").onclick=()=>{ C.projects.splice(i,1); renderProjects(); syncJSON(); };
+    const up=d.querySelector("[data-up]"), down=d.querySelector("[data-down]");
+    if(up) up.onclick=()=>{ if(i>0){ const t=C.projects[i-1]; C.projects[i-1]=C.projects[i]; C.projects[i]=t; renderProjects(); syncJSON(); } };
+    if(down) down.onclick=()=>{ if(i<C.projects.length-1){ const t=C.projects[i+1]; C.projects[i+1]=C.projects[i]; C.projects[i]=t; renderProjects(); syncJSON(); } };
+    box.appendChild(d);
+  });
+}
+$("addProject").onclick=()=>{ C.projects=C.projects||[]; C.projects.push({id:uid(),name:"New Project",x:"https://x.com/",role:"What I did",img:""}); renderProjects(); syncJSON(); };
+
+/* ---- works CRUD + reorder ---- */
+function renderWorks(){
+  const box=$("works"); box.innerHTML="";
+  (C.works||[]).forEach((w,i)=>{
+    const d=document.createElement("div"); d.className="item";
+    d.innerHTML=`
+      <div class="row"><div><label>Title</label><input data-k="title" value="${esc(w.title)}"></div>
+      <div><label>Category</label><select data-k="cat"><option ${w.cat==="art"?"selected":""}>art</option><option ${w.cat==="testing"?"selected":""}>testing</option><option ${w.cat==="community"?"selected":""}>community</option></select></div></div>
+      <label>Short line</label><input data-k="note" value="${esc(w.note||"")}">
+      <label>Popup note</label><textarea data-k="desc" style="min-height:56px">${esc(w.desc||"")}</textarea>
+      <div class="row"><div><label>Image — assets/name.png</label><input data-k="img" placeholder="assets/meme-1.png" value="${(w.img||"").startsWith("data:")?"":esc(w.img||"")}"></div>
+      <div><label>Pick file (instant preview)</label><input type="file" accept="image/*" data-file="${i}"></div></div>
+      <img class="${w.img?"show":""}" src="${(w.img||"").startsWith("data:")?w.img:esc(w.img||"")}">
+      <div class="move">
+        <button class="tiny" data-up="${i}" ${i===0?"disabled":""}>↑ Up</button>
+        <button class="tiny" data-down="${i}" ${i===C.works.length-1?"disabled":""}>↓ Down</button>
+        <button class="tiny danger" data-del="${i}">Delete</button>
+      </div>`;
+    d.querySelectorAll("[data-k]").forEach(inp=>{
+      inp.addEventListener(inp.tagName==="SELECT"?"change":"input",()=>{
+        C.works[i][inp.dataset.k]=inp.value;
+        if(inp.dataset.k==="img"){ const im=d.querySelector("img"); im.src=inp.value; im.classList.toggle("show",!!inp.value); }
+        syncJSON();
+      });
+    });
+    d.querySelector("[data-file]").addEventListener("change",e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{ C.works[i].img=r.result; const im=d.querySelector("img"); im.src=r.result; im.classList.add("show"); syncJSON(); msg("Preview loaded. For hosting also save "+f.name+" into assets/ and set assets/"+f.name+"."); };
+      r.readAsDataURL(f);
+    });
+    d.querySelector("[data-del]").onclick=()=>{ C.works.splice(i,1); renderWorks(); syncJSON(); };
+    const up=d.querySelector("[data-up]"), down=d.querySelector("[data-down]");
+    if(up) up.onclick=()=>{ if(i>0){ const t=C.works[i-1]; C.works[i-1]=C.works[i]; C.works[i]=t; renderWorks(); syncJSON(); } };
+    if(down) down.onclick=()=>{ if(i<C.works.length-1){ const t=C.works[i+1]; C.works[i+1]=C.works[i]; C.works[i]=t; renderWorks(); syncJSON(); } };
+    box.appendChild(d);
+  });
+}
+$("addWork").onclick=()=>{ C.works=C.works||[]; C.works.push({id:uid(),cat:"art",title:"New piece",note:"What is this?",desc:"",look:"mint",letter:"N",tall:false,img:""}); renderWorks(); syncJSON(); };
+
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function msg(t){ $("msg").textContent=t; }
+$("save").onclick=()=>{ localStorage.setItem(KEY,JSON.stringify(C)); msg("Saved ✓ Open projects / highlights to preview. Your uploads are kept."); };
+$("backup").onclick=()=>{
+  const b=new Blob([JSON.stringify(C,null,2)],{type:"application/json"}); const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download="portfolio-BACKUP-"+new Date().toISOString().slice(0,10)+".json"; a.click();
+  msg("Backup downloaded ✓ Keep this file — it has all your arts + projects.");
+};
+$("restoreBtn").onclick=()=>$("restoreFile").click();
+$("restoreFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ C=JSON.parse(r.result); localStorage.setItem(KEY,JSON.stringify(C)); fillTop(); renderProjects(); renderWorks(); syncJSON(); msg("Backup restored ✓ All uploads back."); }catch(err){ msg("That file didn't look like a backup."); } };
+  r.readAsText(f);
+});
+$("reset").onclick=()=>{
+  if(!confirm("Reset deletes YOUR uploads from this browser. Download a Backup first. Continue?")) return;
+  localStorage.removeItem(KEY); C=base(); fillTop(); renderProjects(); renderWorks(); syncJSON(); msg("Reset to defaults.");
+};
+$("download").onclick=()=>{
+  const js="/* Exported "+new Date().toISOString().slice(0,10)+" — replace content.js */\nwindow.SITE_CONTENT = "+JSON.stringify(C,null,2)+";\n";
+  const b=new Blob([js],{type:"text/javascript"}); const a=document.createElement("a");
+  a.href=URL.createObjectURL(b); a.download="content.js"; a.click();
+  msg("Downloaded content.js — replace the file, re-upload folder to host.");
+};
+$("json").addEventListener("input",()=>{ try{ const v=JSON.parse($("json").value); C=v; fillTop(); renderProjects(); renderWorks(); }catch(e){} });
+
+fillTop(); renderProjects(); renderWorks(); syncJSON();
+</script>
+</body>
+</html>
