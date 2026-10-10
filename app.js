@@ -238,8 +238,8 @@
     // soft blur-fade reveals everywhere else
     $$("[data-reveal]").forEach(el => {
       if (el.closest(".hero,.page-head") || el.id === "projectList") return;
-      gsap.fromTo(el, { opacity: 0, y: 28, filter: "blur(6px)" }, {
-        opacity: 1, y: 0, filter: "blur(0px)", duration: .9, ease: "power3.out",
+      gsap.fromTo(el, { opacity: 0, y: 28 }, {
+        opacity: 1, y: 0, duration: .9, ease: "power3.out",
         scrollTrigger: { trigger: el, start: "top 88%", once: true }
       });
     });

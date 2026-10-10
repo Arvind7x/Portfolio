@@ -172,11 +172,30 @@ function collectTop(){
   syncJSON();
 }
 ["alias","hello","summary","roles","photo","x","xHandle","discord","discordNote","aTitle","aBody","aPoints","aTools"].forEach(id=>$(id).addEventListener("input",collectTop));
+// Shrink uploads on pick (canvas) so giant phone photos never bloat the site again.
+// PNG in -> PNG out (keeps transparency for stickers/logos), else JPEG.
+function downscale(file, maxDim, cb){
+  function fallback(){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
+  try {
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      try {
+        let w=img.width, h=img.height;
+        const s=Math.min(1, maxDim/Math.max(w,h));
+        w=Math.max(1,Math.round(w*s)); h=Math.max(1,Math.round(h*s));
+        const c=document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url);
+        cb((file.type||"").includes("png") ? c.toDataURL("image/png") : c.toDataURL("image/jpeg",0.85));
+      } catch(e){ URL.revokeObjectURL(url); fallback(); }
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); fallback(); };
+    img.src=url;
+  } catch(e){ fallback(); }
+}
 $("photoFile").addEventListener("change",e=>{
   const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{ C.profile.photo=r.result; $("photo").value="(preview — also save "+f.name+" to assets/ for hosting)"; syncJSON(); msg("Photo preview loaded. Also save "+f.name+" into assets/."); };
-  r.readAsDataURL(f);
+  downscale(f,1000,dataUrl=>{ C.profile.photo=dataUrl; $("photo").value="(preview — also save "+f.name+" to assets/ for hosting)"; syncJSON(); msg("Photo ready (auto-shrunk) ✓ Also save "+f.name+" into assets/."); });
 });
 
 /* ---- projects CRUD + reorder ---- */
@@ -204,9 +223,7 @@ function renderProjects(){
     }));
     d.querySelector("[data-pfile]").addEventListener("change",e=>{
       const f=e.target.files[0]; if(!f) return;
-      const r=new FileReader();
-      r.onload=()=>{ C.projects[i].img=r.result; const im=d.querySelector("img"); im.src=r.result; im.classList.add("show"); syncJSON(); msg("Project picture preview loaded. For hosting also save "+f.name+" into assets/ and set assets/"+f.name+"."); };
-      r.readAsDataURL(f);
+      downscale(f,800,dataUrl=>{ C.projects[i].img=dataUrl; const im=d.querySelector("img"); im.src=dataUrl; im.classList.add("show"); syncJSON(); msg("Project picture ready (auto-shrunk) ✓ For hosting also save "+f.name+" into assets/ and set assets/"+f.name+"."); });
     });
     d.querySelector("[data-del]").onclick=()=>{ C.projects.splice(i,1); renderProjects(); syncJSON(); };
     const up=d.querySelector("[data-up]"), down=d.querySelector("[data-down]");
@@ -244,9 +261,7 @@ function renderWorks(){
     });
     d.querySelector("[data-file]").addEventListener("change",e=>{
       const f=e.target.files[0]; if(!f) return;
-      const r=new FileReader();
-      r.onload=()=>{ C.works[i].img=r.result; const im=d.querySelector("img"); im.src=r.result; im.classList.add("show"); syncJSON(); msg("Preview loaded. For hosting also save "+f.name+" into assets/ and set assets/"+f.name+"."); };
-      r.readAsDataURL(f);
+      downscale(f,1600,dataUrl=>{ C.works[i].img=dataUrl; const im=d.querySelector("img"); im.src=dataUrl; im.classList.add("show"); syncJSON(); msg("Preview ready (auto-shrunk) ✓ For hosting also save "+f.name+" into assets/ and set assets/"+f.name+"."); });
     });
     d.querySelector("[data-del]").onclick=()=>{ C.works.splice(i,1); renderWorks(); syncJSON(); };
     const up=d.querySelector("[data-up]"), down=d.querySelector("[data-down]");
