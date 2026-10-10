@@ -32,7 +32,7 @@
   }
   let C = getContent();
   const isWork = /\/(work)(\.html)?\/?$/.test(location.pathname.toLowerCase());
-  function pageTitle() { const a = (C.profile || {}).alias || ""; return isWork ? ("Highlighted Work — " + a) : (a + " — Tester, Community, Artist"); }
+  function pageTitle() { const a = (C.profile || {}).alias || ""; return isWork ? ("Highlighted Work — " + a) : (a + " — Community Manager, Artist, Tester"); }
   document.title = pageTitle();
 
   function renderDynamic() {
