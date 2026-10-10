@@ -9,24 +9,34 @@
   let arrFast = false; // true when arriving from the other page: play a snappier intro
   try { arrFast = sessionStorage.getItem("void_nav") === "1"; sessionStorage.removeItem("void_nav"); } catch (e) {}
 
+  function num(u) { return (typeof u === "number" && isFinite(u)) ? u : 0; }
   function getContent() {
-    const base = window.SITE_CONTENT || { profile: {}, works: [], projects: [], about: {} };
+    const base = window.SITE_CONTENT || { profile: {}, works: [], projects: [], about: {}, updatedAt: 0 };
+    let over = null;
     try {
       const raw = localStorage.getItem("degen_portfolio_v1");
-      if (!raw) return base;
-      const over = JSON.parse(raw);
-      const merged = Object.assign({}, base, over);
-      if (over.profile) merged.profile = Object.assign({}, base.profile || {}, over.profile);
-      if (over.about) merged.about = Object.assign({}, base.about || {}, over.about);
-      if (over.works) merged.works = over.works;
-      if (over.projects) merged.projects = over.projects;
-      return merged;
-    } catch (e) { return base; }
+      if (raw) over = JSON.parse(raw);
+    } catch (e) { over = null; }
+    // Newest wins by updatedAt. Ties go to the FILE (fresh defaults),
+    // so stale bloated browser saves can never resurrect.
+    if (over && num(over.updatedAt) > num(base.updatedAt)) {
+      return {
+        profile: Object.assign({}, base.profile || {}, over.profile || {}),
+        about: Object.assign({}, base.about || {}, over.about || {}),
+        works: over.works || base.works || [],
+        projects: over.projects || base.projects || [],
+        updatedAt: over.updatedAt
+      };
+    }
+    return base;
   }
-  const C = getContent(), P = C.profile || {};
+  let C = getContent();
   const isWork = /\/(work)(\.html)?\/?$/.test(location.pathname.toLowerCase());
-  document.title = isWork ? ("Highlighted Work — " + (P.alias || "")) : ((P.alias || "Portfolio") + " — Tester, Community, Artist");
+  function pageTitle() { const a = (C.profile || {}).alias || ""; return isWork ? ("Highlighted Work — " + a) : (a + " — Tester, Community, Artist"); }
+  document.title = pageTitle();
 
+  function renderDynamic() {
+  const P = C.profile || {};
   set("brandAlias", P.alias); set("footAlias", P.alias);
   set("helloText", P.hello); set("summaryText", P.summary);
   if (C.about) { set("aboutTitle", C.about.title); set("aboutBody", C.about.body); }
@@ -88,17 +98,23 @@
     strip.innerHTML = feat.map(cardHTML).join("");
     bindCards(strip);
   }
-  // archive: full grid + filters
+  // archive: full grid (filter buttons are static — bound once below)
   const grid = $("#workGrid");
   if (grid) {
     grid.innerHTML = (C.works || []).map(cardHTML).join("");
     bindCards(grid);
+  }
+  } // end renderDynamic
+  function bindFiltersOnce() {
     const f = $("#filters");
-    if (f) f.addEventListener("click", e => {
+    if (!f || f.dataset.bound) return;
+    f.dataset.bound = "1";
+    f.addEventListener("click", e => {
       const btn = e.target.closest("button"); if (!btn) return;
       $$("#filters button").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      const fv = btn.dataset.filter;
+      const fv = btn.dataset.filter, grid = $("#workGrid");
+      if (!grid) return;
       $$(".wcard", grid).forEach(c => {
         const show = fv === "all" || c.dataset.cat === fv;
         if (show) {
@@ -109,6 +125,8 @@
       if (window.ScrollTrigger) setTimeout(() => ScrollTrigger.refresh(), 120);
     });
   }
+  renderDynamic();
+  bindFiltersOnce();
 
   // ---- lightbox ----
   const lb = $("#lightbox");
@@ -221,6 +239,55 @@
     else setTimeout(warm, 1500);
   } catch (e) {}
 
+  // ---- LIVE backend (Firestore): newest data wins, updates appear without refresh ----
+  function cleanRemote(d) {
+    if (!d || typeof d !== "object") return null;
+    const t = (typeof d.updatedAt === "number" && isFinite(d.updatedAt)) ? d.updatedAt : 0;
+    return {
+      profile: d.profile || {}, about: d.about || {},
+      works: d.works || [], projects: d.projects || [],
+      updatedAt: t
+    };
+  }
+  function bindParallax() {
+    if (!window.gsap || !window.ScrollTrigger || RM) return;
+    $$(".pzoom img").forEach(img => {
+      if (img.dataset.px) return;
+      img.dataset.px = "1";
+      try {
+        gsap.fromTo(img, { yPercent: -5 }, {
+          yPercent: 5, ease: "none",
+          scrollTrigger: { trigger: img.closest(".wcard") || img, start: "top bottom", end: "bottom top", scrub: true }
+        });
+      } catch (e) {}
+    });
+  }
+  function refreshLive(remote) {
+    const d = cleanRemote(remote);
+    if (!d || !(d.updatedAt > (C.updatedAt || 0))) return false;
+    C = d;
+    try { localStorage.setItem("degen_portfolio_v1", JSON.stringify(C)); } catch (e) {}
+    document.title = pageTitle();
+    renderDynamic();
+    try {
+      if (window.ScrollTrigger) {
+        ScrollTrigger.getAll().forEach(t => { if (!t.trigger || !document.contains(t.trigger)) { try { t.kill(); } catch (e) {} } });
+        ScrollTrigger.refresh();
+      }
+      if (window.gsap && !RM) {
+        gsap.fromTo($$(".wcard"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .5, stagger: .04, ease: "power2.out", overwrite: true });
+        bindParallax();
+      }
+    } catch (e) {}
+    return true;
+  }
+  try {
+    if (window.LiveDB) {
+      LiveDB.subscribe(function (data) { refreshLive(data); });
+      setTimeout(function () { try { if (window.ScrollTrigger) ScrollTrigger.refresh(); } catch (e) {} }, 4000);
+    }
+  } catch (e) {}
+
   // ---- calm premium motion (never blocks scroll/click) ----
   if (RM || !window.gsap || !window.ScrollTrigger) { document.body.classList.add("no-anim"); return; }
   try {
@@ -255,11 +322,6 @@
       ScrollTrigger.batch(rows, { start: "top 94%", once: true, onEnter: b => gsap.to(b, { opacity: 1, y: 0, duration: .6, stagger: .07, ease: "power3.out", overwrite: true }) });
     }
     // gentle parallax drift inside artwork
-    $$(".pzoom img").forEach(img => {
-      gsap.fromTo(img, { yPercent: -5 }, {
-        yPercent: 5, ease: "none",
-        scrollTrigger: { trigger: img.closest(".wcard") || img, start: "top bottom", end: "bottom top", scrub: true }
-      });
-    });
+    bindParallax();
   } catch (e) { document.body.classList.add("no-anim"); }
 })();
