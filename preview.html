@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Logo preview — pick one</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+.pick{max-width:960px;margin:0 auto;padding:120px 26px 60px;text-align:center}
+.pick h1{font-size:clamp(30px,5vw,48px);letter-spacing:-.03em;font-weight:500}
+.pick p{color:var(--muted);margin:10px 0 34px}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.opt{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:var(--surface)}
+.opt img{width:100%;border-radius:14px;display:block}
+.opt b{display:block;font-size:20px;margin:14px 0 4px}
+.opt span{color:var(--muted);font-size:13.5px}
+@media(max-width:760px){.opts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<main class="pick">
+  <h1>Pick your <em style="font-family:var(--serif)">L</em></h1>
+  <p>Reply <b>A</b>, <b>B</b> or <b>C</b> — the winner goes live as your profile picture.</p>
+  <div class="opts">
+    <div class="opt"><img src="assets/logo-a.svg" alt="Logo A"><b>A · Serif</b><span>Elegant italic L on dark, mint dot. Matches your headlines.</span></div>
+    <div class="opt"><img src="assets/logo-b.svg" alt="Logo B"><b>B · Orbit</b><span>Crypto-native: L inside a mint orbit ring. Most "web3".</span></div>
+    <div class="opt"><img src="assets/logo-c.svg" alt="Logo C"><b>C · Bold</b><span>Chunky geometric L, mint on dark — loudest, most memorable.</span></div>
+  </div>
+</main>
+</body>
+</html>
