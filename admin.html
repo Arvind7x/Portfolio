@@ -121,13 +121,17 @@ function num(u){ return (typeof u==="number"&&isFinite(u))?u:0; }
 function current(){
   try{const r=localStorage.getItem(KEY); if(!r) return base();
     const o=JSON.parse(r); const b=base();
-    return {
-      profile:Object.assign({},b.profile,o.profile||{}),
-      about:Object.assign({},b.about,o.about||{}),
-      projects:o.projects||b.projects||[],
-      works:o.works||b.works||[],
-      updatedAt:num(o.updatedAt)>num(b.updatedAt)?o.updatedAt:(b.updatedAt||0)
-    };
+    // Newest wins; ties go to the FILE so stale browser saves can't resurrect.
+    if(num(o.updatedAt)>num(b.updatedAt||0)){
+      return {
+        profile:Object.assign({},b.profile,o.profile||{}),
+        about:Object.assign({},b.about,o.about||{}),
+        projects:o.projects||b.projects||[],
+        works:o.works||b.works||[],
+        updatedAt:o.updatedAt
+      };
+    }
+    return base();
   }catch(e){ return base(); }
 }
 let C=current();
