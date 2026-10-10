@@ -9,7 +9,7 @@ window.SITE_CONTENT = {
       "Artist",
       "Tester"
     ],
-    "photo": "",
+    "photo": "assets/logo-b.svg",
     "x": "https://x.com/Leabert_",
     "xHandle": "@Leabert_",
     "discord": "@Leabert_",
