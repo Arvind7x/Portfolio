@@ -44,6 +44,8 @@
   set("discordHandle", P.discord || "yourhandle");
   set("discordNote", P.discordNote || "");
   const xb = $("#xBtn"); if (xb && P.x) xb.href = P.x;
+  if (P.x) $$("[data-x-link]").forEach(a => { a.href = P.x; });
+  if (P.xHandle) $$("[data-x-handle]").forEach(el => { el.textContent = P.xHandle + " →"; });
   const yEl = $("#year"); if (yEl) yEl.textContent = new Date().getFullYear();
 
   const rr = $("#rolesRow"); if (rr) rr.innerHTML = (P.roles || []).map(r => `<span>${esc(r)}</span>`).join("");

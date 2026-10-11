@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ModPilot — Discord Mod-Helper Bot</title>
+<meta name="description" content="ModPilot: tickets, FAQs, raid cards and AI thread summaries for crypto Discord communities. Live 24/7." />
+<link rel="icon" type="image/svg+xml" href="assets/logo-b.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+.mp-hero{max-width:var(--max);margin:0 auto;padding:150px 26px 10px;text-align:left}
+.livepill{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12.5px;color:var(--muted);border:1px solid var(--line);border-radius:100px;padding:8px 15px;background:rgba(255,255,255,.02)}
+.mp-hero h1{font-size:clamp(44px,7vw,84px);letter-spacing:-.035em;line-height:1;font-weight:500;margin:24px 0 16px}
+.mp-hero h1 em{font-family:var(--serif);font-style:italic;font-weight:400}
+.mp-sub{color:var(--muted);font-size:18px;max-width:60ch}
+.mp-ctas{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.mp-sec{max-width:var(--max);margin:0 auto;padding:64px 26px 0}
+.mp-sec h2{font-size:clamp(26px,4vw,40px);letter-spacing:-.03em;font-weight:500;margin-bottom:8px}
+.mp-sec h2 em{font-family:var(--serif);font-style:italic;font-weight:400}
+.mp-sec>p{color:var(--muted);max-width:62ch;margin-bottom:24px}
+.cmd-tag{align-self:flex-start;font-family:var(--mono);font-size:12px;color:#0a0b0d;background:var(--accent);padding:5px 12px;border-radius:100px;font-weight:500}
+.ops{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px}
+@media(max-width:900px){.ops{grid-template-columns:1fr}}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12.5px;color:var(--muted);border:1px solid var(--line);border-radius:100px;padding:8px 15px;background:rgba(255,255,255,.02)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:mpPulse 2.4s infinite}
+@keyframes mpPulse{50%{opacity:.4}}
+.hero-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--faint);font-size:13.5px;font-family:var(--mono)}
+.hero-meta a{color:var(--muted);text-decoration:none}
+.hero-meta a:hover{color:var(--accent)}
+.sep{opacity:.4}
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.cards3{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;display:flex;flex-direction:column;gap:10px;transition:transform .25s,border-color .25s}
+.card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.2)}
+.card h3{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.card p{color:var(--muted);font-size:14.5px}
+.contact-card{background:#eef0ea;color:#0b0d10;border-radius:20px;padding:clamp(32px,5vw,64px)}
+.contact-card h2{font-size:clamp(34px,5vw,58px);letter-spacing:-.035em;line-height:1.02;font-weight:500;margin:6px 0 14px}
+.contact-card h2 em{font-family:var(--serif);font-style:italic;font-weight:400}
+.contact-card p{color:#3c414b;max-width:52ch;margin-bottom:26px}
+.sec-label{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.sec-label.light{color:var(--accent-ink,#06281a);opacity:.7}
+.contact-ctas{display:flex;gap:12px;flex-wrap:wrap}
+.contact-card .btn.primary{background:#0b0d10;color:#fff;border-color:#0b0d10}
+.btn.ghost.dark{border-color:rgba(0,0,0,.2);color:#0a0b0d}
+.contact-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:26px;padding-top:18px;border-top:1px solid rgba(0,0,0,.12);font-family:var(--mono);font-size:12px;color:#5b6270}
+</style>
+</head>
+<body>
+
+<div id="veil" aria-hidden="true"></div>
+<div id="progressBar"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header id="nav">
+  <a href="/" class="brand"><span class="brand-mark"></span><span id="brandAlias">0xVOID</span></a>
+  <nav class="nav-links">
+    <a href="/">Projects</a>
+    <a href="/work">Highlights</a>
+    <a href="/#about">About</a>
+  </nav>
+  <button id="contactOpen" class="btn small">Contact me</button>
+  <button id="menuBtn" aria-label="Menu">Menu</button>
+</header>
+<div id="mobileMenu">
+  <a href="/">Projects</a>
+  <a href="/work">Highlights</a>
+  <a href="/#about">About</a>
+  <button id="contactOpenM" class="btn small">Contact me</button>
+</div>
+
+<main id="top">
+  <section class="mp-hero">
+    <p class="eyebrow" data-reveal><span class="dot"></span>Live 24/7 · running in real servers</p>
+    <h1 data-reveal>Meet <em>ModPilot.</em></h1>
+    <p class="mp-sub" data-reveal>A Discord mod-helper bot I built and run: support tickets in threads, instant FAQ answers, raid cards, and AI summaries of long ticket threads — so mods answer faster and chats stay clean.</p>
+    <div class="mp-ctas" data-reveal>
+      <button class="btn primary" data-contact>Contact me</button>
+      <a href="#commands" class="btn ghost" data-scroll>See commands ↓</a>
+    </div>
+    <div class="hero-meta" data-reveal style="margin-top:20px">
+      <span>Free for communities I mod</span><span class="sep">·</span><a href="/" data-hover>by LEABERT →</a>
+    </div>
+  </section>
+
+  <section class="mp-sec" id="commands">
+    <h2 data-reveal>Four commands, <em>zero learning curve.</em></h2>
+    <p data-reveal>Mods already know how to use it — it's just slash commands.</p>
+    <div class="cards3">
+      <div class="card" data-reveal><span class="cmd-tag">/faq</span><h3>Instant answers</h3><p>Bridge steps, faucet links, wallet safety, rules — saved answers posted in one tap. Cuts repeat questions.</p></div>
+      <div class="card" data-reveal><span class="cmd-tag">/ticket</span><h3>Support threads</h3><p>Opens a private thread per problem, tags the user, reminds them what info to add. A real queue instead of chat chaos.</p></div>
+      <div class="card" data-reveal><span class="cmd-tag">/raid</span><h3>Raid cards</h3><p>Target + time + rules in one clean post. Keeps raids fast and kind.</p></div>
+      <div class="card" data-reveal><span class="cmd-tag">/summarize</span><h3>AI thread summaries</h3><p>Reads a long ticket thread and returns problem → likely fix → suggested mod reply. Runs on cheap, fast models.</p></div>
+    </div>
+  </section>
+
+  <section class="mp-sec" id="ops">
+    <h2 data-reveal>Built to <em>stay up.</em></h2>
+    <p data-reveal>Hosted 24/7 with uptime monitoring. No setup for mods — invite, grant three permissions, done.</p>
+    <div class="ops">
+      <div class="card" data-reveal><h3>Always on</h3><p>Cloud-hosted with automatic restarts and round-the-clock health pings.</p></div>
+      <div class="card" data-reveal><h3>AI with an off-switch</h3><p>If the AI backend ever sleeps, the bot says so and keeps working — tickets and FAQs never depend on it.</p></div>
+      <div class="card" data-reveal><h3>Made by a mod</h3><p>Designed from real ticket queues I worked — not a generic template bot.</p></div>
+    </div>
+  </section>
+
+  <section class="section narrow" id="get">
+    <div class="contact-card" data-reveal>
+      <div class="sec-label light">Get ModPilot</div>
+      <h2>Want it in<br><em>your server?</em></h2>
+      <p>Message me with your server invite and which commands you need — I'll set it up with you.</p>
+      <div class="contact-ctas">
+        <button class="btn primary" data-contact>Contact me</button>
+        <a data-x-link href="https://x.com/yourhandle" target="_blank" rel="noopener" class="btn ghost dark">DM on X</a>
+      </div>
+      <div class="contact-foot"><span data-x-handle>@yourhandle</span><span>Replies within 24 hours</span></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>© <span id="year"></span> <span id="footAlias">0xVOID</span> · <a href="/">Projects</a> · <a href="/work">Highlights</a> · <a href="/modpilot">ModPilot</a></span>
+  <span><a href="#top" data-scroll>Back to top ↑</a></span>
+</footer>
+
+<div id="contactModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <button class="modal-x" data-close>✕</button>
+    <h3>Contact me</h3>
+    <p class="modal-sub">Pick whatever's easier. I usually reply within a day.</p>
+    <a id="xBtn" href="https://x.com/yourhandle" target="_blank" rel="noopener" class="contact-opt">
+      <b>X (Twitter)</b><span id="xHandle">@yourhandle →</span>
+    </a>
+    <div class="contact-opt">
+      <b>Discord</b><span id="discordHandle">yourhandle</span>
+      <span class="discord-note" id="discordNote"></span>
+      <button id="copyDiscord" class="btn small ghost">Copy username</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1/dist/lenis.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="live.js"></script>
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
