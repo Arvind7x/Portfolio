@@ -1,3 +1,6 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/modpilot", "destination": "https://bot.leabert.my.id", "permanent": true }
+  ]
 }
